@@ -9,7 +9,7 @@ public class Usuari {
     private String Nom;
     private String Email;
     private String PasswordHash;
-    private String Foto;
+    private byte [] Foto;
     private boolean Instructor;
 
     public int getId() {
@@ -35,15 +35,7 @@ public class Usuari {
     public void setEmail(String Email) {
         this.Email = Email;
     }
-
-    public String getFoto() {
-        return Foto;
-    }
-
-    public void setFoto(String Foto) {
-        this.Foto = Foto;
-    }
-   
+ 
     public boolean isInstructor() {
         return Instructor;
     }

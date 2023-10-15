@@ -2,6 +2,7 @@ package cat.paucasesnovescifp.simulapinstructor;
 
 import cat.paucasesnovescifp.simulapinstructor.dataaccess.DataAccess;
 import cat.paucasesnovescifp.simulapinstructor.models.Intent;
+import cat.paucasesnovescifp.simulapinstructor.models.Review;
 import cat.paucasesnovescifp.simulapinstructor.models.Usuari;
 import cat.paucasesnovescifp.simulapinstructor.views.LoginPanel;
 import cat.paucasesnovescifp.simulapinstructor.views.RegisterDialog;
@@ -10,10 +11,14 @@ import java.awt.BorderLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.DefaultListModel;
 import javax.swing.JFileChooser;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
@@ -149,6 +154,11 @@ public class Main extends javax.swing.JFrame {
         jScrollPane1 = new javax.swing.JScrollPane();
         pnlVideo = new javax.swing.JPanel();
         btnPause = new javax.swing.JButton();
+        jPanel1 = new javax.swing.JPanel();
+        spnValoracio = new javax.swing.JSpinner();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        txaComentari = new javax.swing.JTextArea();
+        btnInsertReview = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         getContentPane().setLayout(null);
@@ -199,11 +209,34 @@ public class Main extends javax.swing.JFrame {
         getContentPane().add(btnPause);
         btnPause.setBounds(700, 460, 72, 23);
 
+        jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder("Review"));
+
+        spnValoracio.setModel(new javax.swing.SpinnerNumberModel(0, null, 5, 1));
+        jPanel1.add(spnValoracio);
+
+        txaComentari.setColumns(20);
+        txaComentari.setRows(5);
+        jScrollPane2.setViewportView(txaComentari);
+
+        jPanel1.add(jScrollPane2);
+
+        btnInsertReview.setText("Send");
+        btnInsertReview.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnInsertReviewActionPerformed(evt);
+            }
+        });
+        jPanel1.add(btnInsertReview);
+
+        getContentPane().add(jPanel1);
+        jPanel1.setBounds(500, 500, 500, 110);
+
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
     private void lstIntentsValueChanged(ListSelectionEvent evt) {
         Intent selectedIntent = lstIntents.getSelectedValue();
+        if (selectedIntent == null) return;
         String appDataFolderPath = System.getenv("LOCALAPPDATA");
         File videoFile = new File(appDataFolderPath + "\\Simulap\\videos\\" + selectedIntent.getVideofile());
         if (videoFile.exists()) {
@@ -214,12 +247,7 @@ public class Main extends javax.swing.JFrame {
         }
     }
 
-    private void btnShowRegisterDialogActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnShowRegisterDialogActionPerformed
-        RegisterDialog registerDialog = new RegisterDialog(this, true);
-        registerDialog.setVisible(true);
-    }//GEN-LAST:event_btnShowRegisterDialogActionPerformed
-
-    private void btnGetAttemptsToReviewActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnGetAttemptsToReviewActionPerformed
+    private void refreshListOfPendingReviews() {
         lstIntents.removeAll();
         ArrayList<Intent> intents = dataAccess.getAttemptsPendingReview();
         DefaultListModel<Intent> dlmi = new DefaultListModel<>();
@@ -227,6 +255,27 @@ public class Main extends javax.swing.JFrame {
             dlmi.addElement(i);
         }
         lstIntents.setModel(dlmi);
+        //Unload video from mediaPlayer
+        mediaPlayerComponent.mediaPlayer().media().startPaused("", "");
+        pnlVideo.setBorder(javax.swing.BorderFactory.createTitledBorder("Video player"));
+        //Reset review fields
+        spnValoracio.setValue(0);
+        try {
+            spnValoracio.commitEdit();
+        } catch (ParseException ex) {
+            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        txaComentari.setText("");
+        
+    }
+
+    private void btnShowRegisterDialogActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnShowRegisterDialogActionPerformed
+        RegisterDialog registerDialog = new RegisterDialog(this, true);
+        registerDialog.setVisible(true);
+    }//GEN-LAST:event_btnShowRegisterDialogActionPerformed
+
+    private void btnGetAttemptsToReviewActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnGetAttemptsToReviewActionPerformed
+        refreshListOfPendingReviews();
 
     }//GEN-LAST:event_btnGetAttemptsToReviewActionPerformed
 
@@ -237,6 +286,25 @@ public class Main extends javax.swing.JFrame {
             mediaPlayerComponent.mediaPlayer().controls().play();
         }
     }//GEN-LAST:event_btnPauseActionPerformed
+
+    private void btnInsertReviewActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnInsertReviewActionPerformed
+        Review review = new Review();
+        review.setIdIntent(lstIntents.getSelectedValue().getId());
+        review.setIdReviewer(usuari.getId());
+        try {
+            spnValoracio.commitEdit();
+        } catch (ParseException ex) {
+            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        review.setValoracio((Integer) spnValoracio.getValue());
+        review.setComentari(txaComentari.getText());
+        int newReviewId = dataAccess.insertReview(review);
+        if (newReviewId > 0) {
+            JOptionPane.showMessageDialog(this, "Review successfully inserted!");
+            // Refresh lstReview
+            refreshListOfPendingReviews();
+        }
+    }//GEN-LAST:event_btnInsertReviewActionPerformed
 
     /**
      * @param args the command line arguments
@@ -275,12 +343,17 @@ public class Main extends javax.swing.JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnGetAttemptsToReview;
+    private javax.swing.JButton btnInsertReview;
     private javax.swing.JButton btnPause;
     private javax.swing.JButton btnShowRegisterDialog;
+    private javax.swing.JPanel jPanel1;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JPanel pnlLeft;
     private javax.swing.JPanel pnlLoginContainer;
     private javax.swing.JPanel pnlVideo;
+    private javax.swing.JSpinner spnValoracio;
+    private javax.swing.JTextArea txaComentari;
     // End of variables declaration//GEN-END:variables
 
     public Usuari getUsuari() {

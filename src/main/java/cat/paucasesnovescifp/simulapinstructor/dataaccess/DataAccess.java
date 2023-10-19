@@ -26,9 +26,10 @@ public class DataAccess {
             //properties.load(DataAccess.class.getClassLoader().getResourceAsStream("properties/application.properties"));
             //connection = DriverManager.getConnection(properties.getProperty("connectionUrl"));
             String connectionUrl = "jdbc:sqlserver://localhost:1433;database=simulapdb;user=sa;password=Pwd1234.;encrypt=false;loginTimeout=10;";
-            String connectionUrlAzure = "jdbc:sqlserver://simulap.database.windows.net:1433;database=simulapdb;user=simulapadmin@simulap;password=Pwd12345.;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;";
+            String connectionUrlAzure = "jdbc:sqlserver://simulapsqlserver.database.windows.net:1433;database=simulapdb;user=simulapdbadmin@simulapsqlserver;password=Pwd1234.;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;";
 
-            connection = DriverManager.getConnection(connectionUrl);
+            //connection = DriverManager.getConnection(connectionUrl);
+            connection = DriverManager.getConnection(connectionUrlAzure);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -48,7 +49,7 @@ public class DataAccess {
                 user.setNom(resultSet.getString("Nom"));
                 user.setEmail(resultSet.getString("Email"));
                 user.setPasswordHash(resultSet.getString("PasswordHash"));
-                user.setInstructor(resultSet.getBoolean("IsInstructor"));
+                user.setInstructor(resultSet.getBoolean("Instructor"));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -57,7 +58,7 @@ public class DataAccess {
     }
 
     public int registerUser(Usuari u) {
-        String sql = "INSERT INTO dbo.Usuaris (Nom, Email, PasswordHash, IsInstructor)"
+        String sql = "INSERT INTO dbo.Usuaris (Nom, Email, PasswordHash, Instructor)"
                 + " VALUES (?,?,?,?)"
                 + " SELECT CAST(SCOPE_IDENTITY() as int)";
         try (Connection conn = getConnection(); PreparedStatement insertStatement = conn.prepareStatement(sql)) {
@@ -134,4 +135,17 @@ public class DataAccess {
         }
         return result;
     }
+
+    /**
+     * Mètode per comprovar si un intent es la repetició de un exercici
+     * 'failed'. Comprova si ja existeix un intent amb el mateix IdUsuari i
+     * IdExercici i la \n data es anterior a la de intent.
+     *
+     * @param intent El intent a comprovar
+     * @return el id del intent anterior o 0 si no existeix un intent anterior.
+     */
+    public int getPreviousFailedAttempt(Intent intent) {
+        return 0;
+    }
+
 }

@@ -31,5 +31,11 @@
             <version>4.8.2</version>
             <type>jar</type>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/com.azure/azure-storage-blob -->
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-blob</artifactId>
+            <version>12.24.0</version>
+        </dependency>
     </dependencies>
 </project>

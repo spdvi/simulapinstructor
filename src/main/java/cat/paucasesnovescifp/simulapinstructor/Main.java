@@ -340,7 +340,9 @@ public class Main extends javax.swing.JFrame implements Runnable {
 
             outputStream.close();
             pnlVideo.setBorder(javax.swing.BorderFactory.createTitledBorder("Video player - " + videoFile.getName()));
-            mediaPlayerComponent.mediaPlayer().media().play(videoFile.getAbsolutePath());
+            //mediaPlayerComponent.mediaPlayer().media().play(videoFile.getAbsolutePath());
+            //mediaPlayerComponent.mediaPlayer().media().startPaused(videoFile.getAbsolutePath());
+            mediaPlayerComponent.mediaPlayer().media().start(videoFile.getAbsolutePath());
         } catch (IOException ioe) {
             ioe.printStackTrace();
         }

@@ -12,6 +12,11 @@ public class Usuari {
     private byte [] Foto;
     private boolean Instructor;
 
+    @Override
+    public String toString() {
+        return Id + ", " + Nom + ", " + Email;
+    }
+
     public int getId() {
         return Id;
     }

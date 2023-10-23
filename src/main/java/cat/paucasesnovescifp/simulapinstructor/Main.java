@@ -15,6 +15,8 @@ import com.azure.storage.blob.models.BlobRange;
 import com.azure.storage.blob.models.DownloadRetryOptions;
 import com.azure.storage.blob.specialized.BlockBlobClient;
 import java.awt.BorderLayout;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
@@ -30,8 +32,10 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.DefaultListModel;
 import javax.swing.ImageIcon;
+import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
@@ -54,6 +58,8 @@ public class Main extends javax.swing.JFrame implements Runnable {
     private UserInfoPanel pnlUserInfo = null;
     private DataAccess dataAccess = null;
     private JList<Intent> lstIntents = new JList<Intent>();
+    private JComboBox<Usuari> cmbUsers = new JComboBox<>();
+    private JList<Intent> lstIntentsPerUser = new JList<Intent>();
     private final EmbeddedMediaPlayerComponent mediaPlayerComponent;
     private JFileChooser fileChooser;
     private boolean isPlaying = false;
@@ -92,6 +98,31 @@ public class Main extends javax.swing.JFrame implements Runnable {
             @Override
             public void valueChanged(ListSelectionEvent evt) {
                 lstIntentsValueChanged(evt);
+            }
+        });
+
+        cmbUsers.setBounds(310, 80, 140, 22);
+        getContentPane().add(cmbUsers);
+        DefaultComboBoxModel<Usuari> dcbm = new DefaultComboBoxModel<>();
+        var usuaris = dataAccess.getAllUsers();
+        for (Usuari u : usuaris) {
+            dcbm.addElement(u);
+        }
+        cmbUsers.setModel(dcbm);
+
+        cmbUsers.addItemListener(new ItemListener() {
+            @Override
+            public void itemStateChanged(ItemEvent evt) {
+                onCmbUsersItemStateChanged(evt);
+            }
+        });
+
+        jScrollPane3.setViewportView(lstIntentsPerUser);
+        lstIntentsPerUser.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        lstIntentsPerUser.addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+                lstIntentsPerUserValueChanged(e);
             }
         });
 
@@ -184,12 +215,13 @@ public class Main extends javax.swing.JFrame implements Runnable {
         jScrollPane1 = new javax.swing.JScrollPane();
         pnlVideo = new javax.swing.JPanel();
         btnPause = new javax.swing.JButton();
-        jPanel1 = new javax.swing.JPanel();
+        pnlReview = new javax.swing.JPanel();
         spnValoracio = new javax.swing.JSpinner();
         jScrollPane2 = new javax.swing.JScrollPane();
         txaComentari = new javax.swing.JTextArea();
         btnInsertReview = new javax.swing.JButton();
         jProgressBar1 = new javax.swing.JProgressBar();
+        jScrollPane3 = new javax.swing.JScrollPane();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         getContentPane().setLayout(null);
@@ -200,7 +232,7 @@ public class Main extends javax.swing.JFrame implements Runnable {
         pnlLoginContainer.setOpaque(false);
         pnlLoginContainer.setLayout(null);
         pnlLeft.add(pnlLoginContainer);
-        pnlLoginContainer.setBounds(0, 10, 300, 300);
+        pnlLoginContainer.setBounds(0, 10, 300, 270);
         pnlLoginContainer.getAccessibleContext().setAccessibleDescription("");
 
         getContentPane().add(pnlLeft);
@@ -213,7 +245,7 @@ public class Main extends javax.swing.JFrame implements Runnable {
             }
         });
         getContentPane().add(btnShowRegisterDialog);
-        btnShowRegisterDialog.setBounds(350, 20, 73, 23);
+        btnShowRegisterDialog.setBounds(310, 20, 72, 23);
 
         btnGetAttemptsToReview.setText("Get attempts to review");
         btnGetAttemptsToReview.addActionListener(new java.awt.event.ActionListener() {
@@ -224,7 +256,7 @@ public class Main extends javax.swing.JFrame implements Runnable {
         getContentPane().add(btnGetAttemptsToReview);
         btnGetAttemptsToReview.setBounds(50, 320, 190, 23);
         getContentPane().add(jScrollPane1);
-        jScrollPane1.setBounds(10, 350, 300, 230);
+        jScrollPane1.setBounds(10, 350, 290, 230);
 
         pnlVideo.setBorder(javax.swing.BorderFactory.createTitledBorder("Video player"));
         pnlVideo.setLayout(new java.awt.BorderLayout());
@@ -240,16 +272,16 @@ public class Main extends javax.swing.JFrame implements Runnable {
         getContentPane().add(btnPause);
         btnPause.setBounds(700, 460, 72, 23);
 
-        jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder("Review"));
+        pnlReview.setBorder(javax.swing.BorderFactory.createTitledBorder("Review"));
 
         spnValoracio.setModel(new javax.swing.SpinnerNumberModel(0, null, 5, 1));
-        jPanel1.add(spnValoracio);
+        pnlReview.add(spnValoracio);
 
         txaComentari.setColumns(20);
         txaComentari.setRows(5);
         jScrollPane2.setViewportView(txaComentari);
 
-        jPanel1.add(jScrollPane2);
+        pnlReview.add(jScrollPane2);
 
         btnInsertReview.setText("Send");
         btnInsertReview.addActionListener(new java.awt.event.ActionListener() {
@@ -257,12 +289,14 @@ public class Main extends javax.swing.JFrame implements Runnable {
                 btnInsertReviewActionPerformed(evt);
             }
         });
-        jPanel1.add(btnInsertReview);
+        pnlReview.add(btnInsertReview);
 
-        getContentPane().add(jPanel1);
-        jPanel1.setBounds(500, 500, 500, 110);
+        getContentPane().add(pnlReview);
+        pnlReview.setBounds(500, 500, 500, 110);
         getContentPane().add(jProgressBar1);
         jProgressBar1.setBounds(840, 40, 146, 20);
+        getContentPane().add(jScrollPane3);
+        jScrollPane3.setBounds(310, 150, 180, 240);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -299,10 +333,9 @@ public class Main extends javax.swing.JFrame implements Runnable {
         try {
             String blobName = "uploaded_user_videos/" + selectedIntent.getVideofile();
             BlockBlobClient blobClient = containerClient.getBlobClient(blobName).getBlockBlobClient();
-            
+
             //Could use too...
             //blobClient.downloadToFile("path_to_file");
-            
             int dataSize = (int) blobClient.getProperties().getBlobSize();
 //            int numberOfBlocks = dataSize / 1024;
             int numberOfBlocks = 20;
@@ -368,6 +401,35 @@ public class Main extends javax.swing.JFrame implements Runnable {
         }
         txaComentari.setText("");
 
+    }
+
+    private void onCmbUsersItemStateChanged(ItemEvent evt) {
+        Usuari selectedUser = (Usuari) cmbUsers.getSelectedItem();
+        ArrayList<Intent> intents = dataAccess.getAttemptsPerUser(selectedUser);
+        DefaultListModel<Intent> dlm = new DefaultListModel<>();
+        for (Intent i : intents) {
+            dlm.addElement(i);
+        }
+        //lstIntentsPerUser.setModel(dlm);
+        lstIntents.removeAll();
+        lstIntents.setModel(dlm);
+    }
+
+    private void lstIntentsPerUserValueChanged(ListSelectionEvent evt) {
+        if (!evt.getValueIsAdjusting()) {
+            return;
+        }
+
+        Intent selectedIntent = lstIntentsPerUser.getSelectedValue();
+
+        if (selectedIntent == null) {
+            return;
+        }
+
+        downloadThread = new Thread(this);
+        downloadThread.start();
+        
+        
     }
 
     private void btnShowRegisterDialogActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnShowRegisterDialogActionPerformed
@@ -447,12 +509,13 @@ public class Main extends javax.swing.JFrame implements Runnable {
     private javax.swing.JButton btnInsertReview;
     private javax.swing.JButton btnPause;
     private javax.swing.JButton btnShowRegisterDialog;
-    private javax.swing.JPanel jPanel1;
     private javax.swing.JProgressBar jProgressBar1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JPanel pnlLeft;
     private javax.swing.JPanel pnlLoginContainer;
+    private javax.swing.JPanel pnlReview;
     private javax.swing.JPanel pnlVideo;
     private javax.swing.JSpinner spnValoracio;
     private javax.swing.JTextArea txaComentari;

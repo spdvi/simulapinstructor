@@ -23,6 +23,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.text.ParseException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -71,8 +72,7 @@ public class Main extends javax.swing.JFrame implements Runnable {
     public Main() {
         initComponents();
 
-        System.out.println(System.getProperty("java.io.tmpdir"));
-        
+        //System.out.println(System.getProperty("java.io.tmpdir"));
         setTitle("Simulap instructor U+1F4AA");
         setSize(1024, 768);
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
@@ -268,34 +268,19 @@ public class Main extends javax.swing.JFrame implements Runnable {
     }// </editor-fold>//GEN-END:initComponents
 
     private void lstIntentsValueChanged(ListSelectionEvent evt) {
+        // https://stackoverflow.com/questions/12461627/jlist-fires-valuechanged-twice-when-a-value-is-changed-via-mouse
+        if (!evt.getValueIsAdjusting()) {
+            return;
+        }
+
         Intent selectedIntent = lstIntents.getSelectedValue();
+
         if (selectedIntent == null) {
             return;
         }
-        //String appDataFolderPath = System.getenv("LOCALAPPDATA");
-        String appDataFolderPath = System.getProperty("java.io.tmpdir");
-        File videoFile = new File(appDataFolderPath + "\\Simulap\\videos\\" + selectedIntent.getVideofile());
-        videoFile.mkdirs();
-        try {
-            if (videoFile.createNewFile()) {
-                // File already in cache. Dont download from file server. Should check if video has been updated in server
-                pnlVideo.setBorder(javax.swing.BorderFactory.createTitledBorder("Video player - " + videoFile.getName()));
-                mediaPlayerComponent.mediaPlayer().media().play(videoFile.getAbsolutePath());
-            } else {
-                // Video file created in disk. Download the video bytes and store them in the file.
-                //pnlVideo.setBorder(javax.swing.BorderFactory.createTitledBorder("Video player - invalid video file"));
-                // Download video file from Azure blob storage
-                //        System.out.println("Inside jlist1 value changed");
-                // https://stackoverflow.com/questions/12461627/jlist-fires-valuechanged-twice-when-a-value-is-changed-via-mouse
-                if (!evt.getValueIsAdjusting()) {  //This line prevents double events when selecting by click
-                    downloadThread = new Thread(this);
-                    downloadThread.start();
-                }
-            }
-        } catch (IOException ex) {
-            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-        }
 
+        downloadThread = new Thread(this);
+        downloadThread.start();
     }
 
     @Override
@@ -314,11 +299,15 @@ public class Main extends javax.swing.JFrame implements Runnable {
         try {
             String blobName = "uploaded_user_videos/" + selectedIntent.getVideofile();
             BlockBlobClient blobClient = containerClient.getBlobClient(blobName).getBlockBlobClient();
+            
+            //Could use too...
+            //blobClient.downloadToFile("path_to_file");
+            
             int dataSize = (int) blobClient.getProperties().getBlobSize();
 //            int numberOfBlocks = dataSize / 1024;
             int numberOfBlocks = 20;
             int numberOfBPerBlock = dataSize / numberOfBlocks;  // Split every image in 20 blocks. That is, make 20 requests to Azure.
-            System.out.println("Starting download of " + dataSize + " bytes in " + numberOfBlocks + " " + numberOfBPerBlock / 1024 + "kB chunks");
+            //System.out.println("Starting download of " + dataSize + " bytes in " + numberOfBlocks + " " + numberOfBPerBlock / 1024 + "kB chunks");
 
             int i = 0;
             outputStream = new ByteArrayOutputStream(dataSize);
@@ -344,16 +333,11 @@ public class Main extends javax.swing.JFrame implements Runnable {
             jProgressBar1.setValue(i * jProgressBar1.getMaximum() / (numberOfBlocks + 1));
 
 //            blobClient.downloadStream(outputStream);  // Thread Blocking
-            //String appDataFolderPath = System.getenv("LOCALAPPDATA");
-            String appDataFolderPath = System.getProperty("java.io.tmpdir");
-            File videoFile = new File(appDataFolderPath + "\\Simulap\\videos\\" + selectedIntent.getVideofile());
-            // videoFile should already exist. Created in lstIntentsValueChanged
-            if (videoFile.exists()) {
-                FileOutputStream fos = new FileOutputStream(videoFile, false);
-                fos.write(outputStream.toByteArray());
-                fos.flush();
-                fos.close();
-            }
+            String appDataFolderPath = System.getenv("LOCALAPPDATA");
+            File videoFile = new File(appDataFolderPath + "\\Temp\\Simulap\\videos\\" + selectedIntent.getVideofile());
+            OutputStream fileOutputStream = new FileOutputStream(videoFile);
+            ((ByteArrayOutputStream) outputStream).writeTo(fileOutputStream);
+
             outputStream.close();
             pnlVideo.setBorder(javax.swing.BorderFactory.createTitledBorder("Video player - " + videoFile.getName()));
             mediaPlayerComponent.mediaPlayer().media().play(videoFile.getAbsolutePath());

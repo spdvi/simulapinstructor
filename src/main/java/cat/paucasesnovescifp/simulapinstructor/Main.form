@@ -82,7 +82,7 @@
       </Events>
       <Constraints>
         <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
-          <AbsoluteConstraints x="50" y="320" width="190" height="-1"/>
+          <AbsoluteConstraints x="50" y="300" width="190" height="-1"/>
         </Constraint>
       </Constraints>
     </Component>
@@ -170,6 +170,11 @@
             <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btnInsertReviewActionPerformed"/>
           </Events>
         </Component>
+        <Component class="javax.swing.JButton" name="btnUpdateReview">
+          <Properties>
+            <Property name="text" type="java.lang.String" value="Update"/>
+          </Properties>
+        </Component>
       </SubComponents>
     </Container>
     <Component class="javax.swing.JProgressBar" name="jProgressBar1">
@@ -179,14 +184,5 @@
         </Constraint>
       </Constraints>
     </Component>
-    <Container class="javax.swing.JScrollPane" name="jScrollPane3">
-      <Constraints>
-        <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
-          <AbsoluteConstraints x="310" y="150" width="180" height="240"/>
-        </Constraint>
-      </Constraints>
-
-      <Layout class="org.netbeans.modules.form.compat2.layouts.support.JScrollPaneSupportLayout"/>
-    </Container>
   </SubComponents>
 </Form>

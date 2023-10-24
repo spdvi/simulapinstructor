@@ -202,4 +202,23 @@ public class DataAccess {
 
     }
 
+    public Review getAttemptReview(int idIntent) {
+        Review review = null;
+        String sql = "SELECT * FROM Review WHERE IdIntent = ?";
+        try (Connection connection = getConnection(); PreparedStatement selectStatement = connection.prepareStatement(sql);) {
+            selectStatement.setInt(1, idIntent);
+            ResultSet resultSet = selectStatement.executeQuery();
+            review = new Review();
+            while (resultSet.next()) {
+                review.setId(resultSet.getInt("Id"));
+                review.setIdIntent(resultSet.getInt("IdIntent"));
+                review.setIdReviewer(resultSet.getInt("IdReviewer"));
+                review.setValoracio(resultSet.getInt("Valoracio"));
+                review.setComentari(resultSet.getString("Comentari"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return review;
+    }
 }

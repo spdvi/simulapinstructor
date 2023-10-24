@@ -57,9 +57,8 @@ public class Main extends javax.swing.JFrame implements Runnable {
     private LoginPanel pnlLogin = null;
     private UserInfoPanel pnlUserInfo = null;
     private DataAccess dataAccess = null;
-    private JList<Intent> lstIntents = new JList<Intent>();
+    private JList<Intent> lstIntents = new JList<>();
     private JComboBox<Usuari> cmbUsers = new JComboBox<>();
-    private JList<Intent> lstIntentsPerUser = new JList<Intent>();
     private final EmbeddedMediaPlayerComponent mediaPlayerComponent;
     private JFileChooser fileChooser;
     private boolean isPlaying = false;
@@ -114,15 +113,6 @@ public class Main extends javax.swing.JFrame implements Runnable {
             @Override
             public void itemStateChanged(ItemEvent evt) {
                 onCmbUsersItemStateChanged(evt);
-            }
-        });
-
-        jScrollPane3.setViewportView(lstIntentsPerUser);
-        lstIntentsPerUser.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        lstIntentsPerUser.addListSelectionListener(new ListSelectionListener() {
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
-                lstIntentsPerUserValueChanged(e);
             }
         });
 
@@ -220,8 +210,8 @@ public class Main extends javax.swing.JFrame implements Runnable {
         jScrollPane2 = new javax.swing.JScrollPane();
         txaComentari = new javax.swing.JTextArea();
         btnInsertReview = new javax.swing.JButton();
+        btnUpdateReview = new javax.swing.JButton();
         jProgressBar1 = new javax.swing.JProgressBar();
-        jScrollPane3 = new javax.swing.JScrollPane();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         getContentPane().setLayout(null);
@@ -254,7 +244,7 @@ public class Main extends javax.swing.JFrame implements Runnable {
             }
         });
         getContentPane().add(btnGetAttemptsToReview);
-        btnGetAttemptsToReview.setBounds(50, 320, 190, 23);
+        btnGetAttemptsToReview.setBounds(50, 300, 190, 23);
         getContentPane().add(jScrollPane1);
         jScrollPane1.setBounds(10, 350, 290, 230);
 
@@ -291,12 +281,13 @@ public class Main extends javax.swing.JFrame implements Runnable {
         });
         pnlReview.add(btnInsertReview);
 
+        btnUpdateReview.setText("Update");
+        pnlReview.add(btnUpdateReview);
+
         getContentPane().add(pnlReview);
         pnlReview.setBounds(500, 500, 500, 110);
         getContentPane().add(jProgressBar1);
         jProgressBar1.setBounds(840, 40, 146, 20);
-        getContentPane().add(jScrollPane3);
-        jScrollPane3.setBounds(310, 150, 180, 240);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -315,6 +306,14 @@ public class Main extends javax.swing.JFrame implements Runnable {
 
         downloadThread = new Thread(this);
         downloadThread.start();
+        
+        var selectedIntentReview = dataAccess.getAttemptReview(selectedIntent.getId());
+        if (selectedIntentReview == null) {
+            return;
+        }
+        spnValoracio.setValue(selectedIntentReview.getValoracio());
+        txaComentari.setText(selectedIntentReview.getComentari());
+        //Disable btnSendReview and enable btnUpdateReview
     }
 
     @Override
@@ -415,22 +414,6 @@ public class Main extends javax.swing.JFrame implements Runnable {
         lstIntents.setModel(dlm);
     }
 
-    private void lstIntentsPerUserValueChanged(ListSelectionEvent evt) {
-        if (!evt.getValueIsAdjusting()) {
-            return;
-        }
-
-        Intent selectedIntent = lstIntentsPerUser.getSelectedValue();
-
-        if (selectedIntent == null) {
-            return;
-        }
-
-        downloadThread = new Thread(this);
-        downloadThread.start();
-        
-        
-    }
 
     private void btnShowRegisterDialogActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnShowRegisterDialogActionPerformed
         RegisterDialog registerDialog = new RegisterDialog(this, true);
@@ -509,10 +492,10 @@ public class Main extends javax.swing.JFrame implements Runnable {
     private javax.swing.JButton btnInsertReview;
     private javax.swing.JButton btnPause;
     private javax.swing.JButton btnShowRegisterDialog;
+    private javax.swing.JButton btnUpdateReview;
     private javax.swing.JProgressBar jProgressBar1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
-    private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JPanel pnlLeft;
     private javax.swing.JPanel pnlLoginContainer;
     private javax.swing.JPanel pnlReview;

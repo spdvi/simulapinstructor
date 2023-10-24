@@ -139,8 +139,8 @@ public class DataAccess {
             insertStatement.setInt(3, r.getValoracio());
             insertStatement.setString(4, r.getComentari());
 
-            int affectedRows = insertStatement.executeUpdate();
-            if (affectedRows == 0) {
+            result = insertStatement.executeUpdate();
+            if (result == 0) {
                 throw new SQLException("Creating review failed, no rows affected.");
             }
 
@@ -220,5 +220,23 @@ public class DataAccess {
             e.printStackTrace();
         }
         return review;
+    }
+    
+    public int updateReview(Review r) {
+        int result = 0;
+        String sql = "UPDATE Review SET Valoracio=?, Comentari=? WHERE Id=?";
+        try (Connection conn = getConnection(); PreparedStatement updateStatement = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            updateStatement.setInt(3, r.getId());
+            updateStatement.setInt(1, r.getValoracio());
+            updateStatement.setString(2, r.getComentari());
+
+            result = updateStatement.executeUpdate();
+            if (result == 0) {
+                throw new SQLException("Updating review failed, no rows affected.");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return result;
     }
 }

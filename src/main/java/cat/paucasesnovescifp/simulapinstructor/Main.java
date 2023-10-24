@@ -282,6 +282,11 @@ public class Main extends javax.swing.JFrame implements Runnable {
         pnlReview.add(btnInsertReview);
 
         btnUpdateReview.setText("Update");
+        btnUpdateReview.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnUpdateReviewActionPerformed(evt);
+            }
+        });
         pnlReview.add(btnUpdateReview);
 
         getContentPane().add(pnlReview);
@@ -451,6 +456,14 @@ public class Main extends javax.swing.JFrame implements Runnable {
             refreshListOfPendingReviews();
         }
     }//GEN-LAST:event_btnInsertReviewActionPerformed
+
+    private void btnUpdateReviewActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnUpdateReviewActionPerformed
+        Review review = dataAccess.getAttemptReview(lstIntents.getSelectedValue().getId());
+        if (review == null) return;
+        review.setValoracio((int) spnValoracio.getValue());
+        review.setComentari(txaComentari.getText());
+        int result = dataAccess.updateReview(review);
+    }//GEN-LAST:event_btnUpdateReviewActionPerformed
 
     /**
      * @param args the command line arguments

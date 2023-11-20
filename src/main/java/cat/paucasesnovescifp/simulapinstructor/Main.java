@@ -1,5 +1,6 @@
 package cat.paucasesnovescifp.simulapinstructor;
 
+import cat.paucasesnovescifp.simulapinstructor.dataaccess.BlobDownloadWorker;
 import cat.paucasesnovescifp.simulapinstructor.dataaccess.DataAccess;
 import cat.paucasesnovescifp.simulapinstructor.models.Intent;
 import cat.paucasesnovescifp.simulapinstructor.models.Review;
@@ -20,6 +21,8 @@ import java.awt.event.ItemListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -41,6 +44,7 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import uk.co.caprica.vlcj.player.base.MediaPlayer;
@@ -51,7 +55,7 @@ import uk.co.caprica.vlcj.player.component.EmbeddedMediaPlayerComponent;
  *
  * @author Miguel
  */
-public class Main extends javax.swing.JFrame implements Runnable {
+public class Main extends javax.swing.JFrame {
 
     private Usuari usuari = null;
     private LoginPanel pnlLogin = null;
@@ -62,14 +66,6 @@ public class Main extends javax.swing.JFrame implements Runnable {
     private final EmbeddedMediaPlayerComponent mediaPlayerComponent;
     private JFileChooser fileChooser;
     private boolean isPlaying = false;
-    // Azure blob storage for videos
-    private final static String connectionString
-            = "DefaultEndpointsProtocol=https;AccountName=simulapfileserver;AccountKey=rARWVR8b+HYR9t3Clc7SSYSKg3ziOhmItZUUdNMqSbV70r8xHhXYDw17dtNF13Ftujtj7UOZBRH5+AStTP81ig==;EndpointSuffix=core.windows.net";
-    private BlobServiceClient blobServiceClient;
-    private BlobContainerClient containerClient;
-    //Create a unique name for the container
-    private final static String containerName = "simulapvideoscontainer";
-    private Thread downloadThread;
 
     /**
      * Creates new form Main
@@ -164,10 +160,10 @@ public class Main extends javax.swing.JFrame implements Runnable {
         );
         pnlVideo.add(mediaPlayerComponent, BorderLayout.CENTER);
 
-        // Create a BlobServiceClient object which will be used to create a container client
-        blobServiceClient = new BlobServiceClientBuilder().connectionString(connectionString).buildClient();
-        // Create the container and return a container client object
-        containerClient = blobServiceClient.getBlobContainerClient(containerName);
+//        // Create a BlobServiceClient object which will be used to create a container client
+//        blobServiceClient = new BlobServiceClientBuilder().connectionString(connectionString).buildClient();
+//        // Create the container and return a container client object
+//        containerClient = blobServiceClient.getBlobContainerClient(containerName);
     }
 
     public void userLoggedIn(Usuari user) {
@@ -212,6 +208,7 @@ public class Main extends javax.swing.JFrame implements Runnable {
         btnInsertReview = new javax.swing.JButton();
         btnUpdateReview = new javax.swing.JButton();
         jProgressBar1 = new javax.swing.JProgressBar();
+        statusLabel = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         getContentPane().setLayout(null);
@@ -251,7 +248,7 @@ public class Main extends javax.swing.JFrame implements Runnable {
         pnlVideo.setBorder(javax.swing.BorderFactory.createTitledBorder("Video player"));
         pnlVideo.setLayout(new java.awt.BorderLayout());
         getContentPane().add(pnlVideo);
-        pnlVideo.setBounds(500, 60, 500, 390);
+        pnlVideo.setBounds(490, 70, 510, 390);
 
         btnPause.setText("Pause");
         btnPause.addActionListener(new java.awt.event.ActionListener() {
@@ -260,7 +257,7 @@ public class Main extends javax.swing.JFrame implements Runnable {
             }
         });
         getContentPane().add(btnPause);
-        btnPause.setBounds(700, 460, 72, 23);
+        btnPause.setBounds(920, 470, 72, 23);
 
         pnlReview.setBorder(javax.swing.BorderFactory.createTitledBorder("Review"));
 
@@ -294,6 +291,10 @@ public class Main extends javax.swing.JFrame implements Runnable {
         getContentPane().add(jProgressBar1);
         jProgressBar1.setBounds(840, 40, 146, 20);
 
+        statusLabel.setText("jLabel1");
+        getContentPane().add(statusLabel);
+        statusLabel.setBounds(540, 470, 320, 16);
+
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
@@ -309,9 +310,27 @@ public class Main extends javax.swing.JFrame implements Runnable {
             return;
         }
 
-        downloadThread = new Thread(this);
-        downloadThread.start();
-        
+        String blobName = "uploaded_user_videos/" + selectedIntent.getVideofile();
+        String appDataFolderPath = System.getenv("LOCALAPPDATA");
+        File videoFile = new File(appDataFolderPath + "\\Temp\\Simulap\\videos\\" + selectedIntent.getVideofile());
+
+        BlobDownloadWorker worker = new BlobDownloadWorker(jProgressBar1, statusLabel, blobName,
+                videoFile);
+        worker.addPropertyChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                if ("progress".equals(evt.getPropertyName())) {
+                    jProgressBar1.setValue((Integer) evt.getNewValue());
+                } else if ("state".equals(evt.getPropertyName())) {
+                    if (evt.getNewValue() == SwingWorker.StateValue.DONE) {
+                        onDownloadFinished();
+                    }
+                }
+            }
+        });
+        // Execute the worker in a Swing thread
+        worker.execute();
+
         var selectedIntentReview = dataAccess.getAttemptReview(selectedIntent.getId());
         if (selectedIntentReview == null) {
             return;
@@ -321,68 +340,14 @@ public class Main extends javax.swing.JFrame implements Runnable {
         //Disable btnSendReview and enable btnUpdateReview
     }
 
-    @Override
-    public void run() {
-        //System.out.println(Thread.currentThread().getName());
-        downloadVideo();
-    }
-
-    private void downloadVideo() {
-        // Downloading big images in chunks of 1kB might be very slow because of the request overhead to azure. Modify the algorithm to donwload eavery image in, for instance 20 chunks.
+    public void onDownloadFinished() {
+        // This method will be called when the download is finished
+        statusLabel.setText("Download finished!");
         Intent selectedIntent = lstIntents.getSelectedValue();
-        if (selectedIntent == null) {
-            return;
-        }
-        ByteArrayOutputStream outputStream;
-        try {
-            String blobName = "uploaded_user_videos/" + selectedIntent.getVideofile();
-            BlockBlobClient blobClient = containerClient.getBlobClient(blobName).getBlockBlobClient();
-
-            //Could use too...
-            //blobClient.downloadToFile("path_to_file");
-            int dataSize = (int) blobClient.getProperties().getBlobSize();
-//            int numberOfBlocks = dataSize / 1024;
-            int numberOfBlocks = 20;
-            int numberOfBPerBlock = dataSize / numberOfBlocks;  // Split every image in 20 blocks. That is, make 20 requests to Azure.
-            //System.out.println("Starting download of " + dataSize + " bytes in " + numberOfBlocks + " " + numberOfBPerBlock / 1024 + "kB chunks");
-
-            int i = 0;
-            outputStream = new ByteArrayOutputStream(dataSize);
-
-            while (i < numberOfBlocks) {
-                BlobRange range = new BlobRange(i * numberOfBPerBlock, (long) numberOfBPerBlock);
-                DownloadRetryOptions options = new DownloadRetryOptions().setMaxRetryRequests(5);
-
-                System.out.println(i + ": Downloading bytes " + range.getOffset() + " to " + (range.getOffset() + range.getCount()) + " with status "
-                        + blobClient.downloadStreamWithResponse(outputStream, range, options, null, false,
-                                Duration.ofSeconds(30), Context.NONE));
-                i++;
-                jProgressBar1.setValue(i * jProgressBar1.getMaximum() / (numberOfBlocks + 1));
-            }
-
-            // Download the last bytes of the image
-            BlobRange range = new BlobRange(i * numberOfBPerBlock);
-            DownloadRetryOptions options = new DownloadRetryOptions().setMaxRetryRequests(5);
-            System.out.println(i + ": Downloading bytes " + range.getOffset() + " to " + dataSize + " with status "
-                    + blobClient.downloadStreamWithResponse(outputStream, range, options, null, false,
-                            Duration.ofSeconds(30), Context.NONE));
-            i++;
-            jProgressBar1.setValue(i * jProgressBar1.getMaximum() / (numberOfBlocks + 1));
-
-//            blobClient.downloadStream(outputStream);  // Thread Blocking
-            String appDataFolderPath = System.getenv("LOCALAPPDATA");
-            File videoFile = new File(appDataFolderPath + "\\Temp\\Simulap\\videos\\" + selectedIntent.getVideofile());
-            OutputStream fileOutputStream = new FileOutputStream(videoFile);
-            ((ByteArrayOutputStream) outputStream).writeTo(fileOutputStream);
-
-            outputStream.close();
-            pnlVideo.setBorder(javax.swing.BorderFactory.createTitledBorder("Video player - " + videoFile.getName()));
-            //mediaPlayerComponent.mediaPlayer().media().play(videoFile.getAbsolutePath());
-            //mediaPlayerComponent.mediaPlayer().media().startPaused(videoFile.getAbsolutePath());
-            mediaPlayerComponent.mediaPlayer().media().start(videoFile.getAbsolutePath());
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
-        }
+        String appDataFolderPath = System.getenv("LOCALAPPDATA");
+        File videoFile = new File(appDataFolderPath + "\\Temp\\Simulap\\videos\\" + selectedIntent.getVideofile());
+        pnlVideo.setBorder(javax.swing.BorderFactory.createTitledBorder("Video player - " + videoFile.getName()));
+        mediaPlayerComponent.mediaPlayer().media().start(videoFile.getAbsolutePath());
     }
 
     private void refreshListOfPendingReviews() {
@@ -459,7 +424,9 @@ public class Main extends javax.swing.JFrame implements Runnable {
 
     private void btnUpdateReviewActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnUpdateReviewActionPerformed
         Review review = dataAccess.getAttemptReview(lstIntents.getSelectedValue().getId());
-        if (review == null) return;
+        if (review == null) {
+            return;
+        }
         review.setValoracio((int) spnValoracio.getValue());
         review.setComentari(txaComentari.getText());
         int result = dataAccess.updateReview(review);
@@ -514,6 +481,7 @@ public class Main extends javax.swing.JFrame implements Runnable {
     private javax.swing.JPanel pnlReview;
     private javax.swing.JPanel pnlVideo;
     private javax.swing.JSpinner spnValoracio;
+    private javax.swing.JLabel statusLabel;
     private javax.swing.JTextArea txaComentari;
     // End of variables declaration//GEN-END:variables
 
